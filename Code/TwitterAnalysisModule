@@ -1,0 +1,162 @@
+from twitter import *
+import re
+import urllib
+import urllib2
+from Flask import Flask
+from Flask import views
+
+
+gd = {'good':1,
+          'great':1,
+          'wonderful':1,
+          'fantastic':1,
+          'awesome':1,
+          'perfect':1,
+          'better':1,
+          'best':1,
+          'woo hoo':1,
+          'incredible':1,
+          'positive':1,
+          'happy':1,
+          'excited':1
+          }
+
+bd = {'bad':-1,
+          'horrible':-1,
+          'aweful':-1,
+          'crap':-1,
+          'disgusting':-1,
+          'horrid':-1,
+          'annoying':-1,
+          'worse':-1,
+          'yuck':-1,
+          'sad':-1,
+          'mad':-1,
+          'angry':-1
+          }
+
+
+t = Twitter(auth = OAuth('2392087700-jt71UOdz7nOOwO6aylppNDVhcLwgErig5BuZZGv', 'tGT4BgU1N8gJqrR0qgUvwdfW2FzjFiLTQLjq8aQqmVL9t', 'sSfVfvJ8wMZ6erCeejDzw', '0xNLZ82pfI5z5iaJMYF6gZhoYs1qYnwYpqG74e0TUM'))
+
+def Twitter_auth():
+    t = Twitter(auth = OAuth('2392087700-jt71UOdz7nOOwO6aylppNDVhcLwgErig5BuZZGv', 'tGT4BgU1N8gJqrR0qgUvwdfW2FzjFiLTQLjq8aQqmVL9t', 'sSfVfvJ8wMZ6erCeejDzw', '0xNLZ82pfI5z5iaJMYF6gZhoYs1qYnwYpqG74e0TUM'))
+
+def Twitter_getmystatuses():
+    x = t.statuses.user_timeline(screen_name='johnpemberton19')
+    for i in range(len(x)):
+        print x[i]['text'].encode('utf-8')
+
+def Twitter_creategood_dictionary():
+    gd = {'good':1,
+          'great':1,
+          'wonderful':1,
+          'fantastic':1,
+          'awesome':1,
+          'perfect':1,
+          'better':1,
+          'best':1,
+          'woo hoo':1,
+          'incredible':1,
+          'positive':1,
+          'happy':1,
+          'excited':1
+          }
+
+def Twitter_createbad_dictionary():
+     bd = {'bad':-1,
+          'horrible':-1,
+          'aweful':-1,
+          'crap':-1,
+          'disgusting':-1,
+          'horrid':-1,
+          'annoying':-1,
+          'worse':-1,
+          'yuck':-1,
+          'sad':-1,
+          'mad':-1,
+          'angry':-1
+          }
+
+def Twitter_getmystatuses_inwords():
+    x = t.statuses.user_timeline(screen_name='@sharwink')
+    wordslist = []
+    for i in range(len(x)):
+        wordslist.extend(x[i]['text'].encode('utf-8').lower().split())
+    return wordslist
+
+def Twitter_evaluatetopic(tweetlist):
+    score = 0
+    wordlist = []
+    for line in tweetlist:
+        score += Twitter_evaluatesentances(line)
+    verdict = Twitter_scorevaluation(score)
+    print verdict
+
+def Twitter_evaluatesentances(tweets):
+    score = 0
+    wordlist = []
+    wordlist = tweets.split()
+    for word in wordlist:
+        if word.lower() in gd:
+            score += gd[word.lower()]
+        elif word.lower() in bd:
+            score += bd[word.lower()]
+    return score
+
+def Twitter_scorevaluation(x):
+    if x > 0:
+        return 'Is overall positive'
+    else:
+        return 'Is overall negative'
+
+def Twitter_generategoodwordslist():
+    cleanlist = []
+    aResp = urllib2.urlopen('http://www.creativeaffirmations.com/positive-words.html')
+    web_pg = aResp.read()
+    pattern1 = '<TD>.*<TD>'
+    pattern2 = '[^(<TD>)][A-z][a-z]*[^(<TD>)][^(<TR>)]'
+    rslts = re.search(pattern1,web_pg)
+    resultslist = rslts.group(0).split('<TD>')
+    cleanlist = [word.replace('</TR>','') for word in resultslist]
+    cleanlist = [word.replace('<TR>','') for word in cleanlist]
+    cleanlist.remove('')
+    Twitter_extendgd(cleanlist)
+    
+def Twitter_generatebadwordslist():
+    cleanlist = []
+    openfile = open('/Python27/negative-words.txt','r')
+    lines = openfile.readlines()
+    for i in range(35,4818):
+        cleanlist.append(lines[i])
+    cleanlist = [word.replace('\n','') for word in cleanlist]
+    Twitter_extendbd(cleanlist)
+
+def Twitter_extendgd(goodlist):
+    for line in goodlist:
+        gd[line] = 1
+
+def Twitter_extendbd(badlist):
+    for line in badlist:
+        bd[line] = -1
+
+def Twitter_search(topic):
+    tweetlist = []
+    rx = re.compile('\W+')
+    stream = t.search.tweets(q=topic,count=10000)
+    length = len(stream['statuses'])
+    for i in range(len(stream['statuses'])):
+        if stream['statuses'][i]['user'].values()[10]> 1000 and stream['statuses'][i]['lang'].encode('utf-8') == 'en':
+            cleantweet = rx.sub(' ',stream['statuses'][i]['text'].encode('utf-8'))
+            tweetlist.append(stream['statuses'][i]['text'].encode('utf-8'))
+    return tweetlist
+
+def Twitter_pull(topic):
+    tweetlist = []
+    rx = re.compile('\W+')
+    stream = t.search.tweets(q=topic,count=10000)
+    length = len(stream['statuses'])
+    for i in range(len(stream['statuses'])):
+        if stream['statuses'][i]['user'].values()[10]> 1000 and stream['statuses'][i]['lang'].encode('utf-8') == 'en':
+            cleantweet = rx.sub(' ',stream['statuses'][i]['text'].encode('utf-8'))
+    return cleantweet
+
